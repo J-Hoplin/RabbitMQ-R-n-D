@@ -12,16 +12,25 @@ const consumer = async () => {
     // Create Channel
     const channel = await connection.createChannel()
 
+    // Fair Prefetch
+    channel.prefetch(1);
+
     // Declare a Queue to send message
     await channel.assertQueue(process.env.QUEUE_NAME, {
       durable: true
     })
 
-    await channel.consume(process.env.QUEUE_NAME, (msg) => {
+    channel.consume(process.env.QUEUE_NAME, (msg) => {
       const seconds = msg.content.toString().split('.').length - 1
       console.log(`Recieved : ${msg.content.toString()}`)
+      setTimeout(() => {
+        console.log("Done!")
+        // 중요!
+        // 처리를 완료하였다는 ACK Message를 Rabbit MQ에 전송하여 Queue에서 메세지 삭제
+        channel.ack(msg)
+      },seconds * 1000);
     }, {
-      noAck: true
+      noAck: false
     })
 
   } catch (err) {
